@@ -131,6 +131,13 @@ public final class ModConfig {
         private double ironArmorWeight = 2.0D;
         private double diamondArmorWeight = 3.0D;
         private double netheriteArmorWeight = 4.0D;
+
+        // Per-slot armor multipliers. A larger armor piece contributes more magnetic weight.
+        private double helmetArmorMultiplier = 1.00D;
+        private double chestplateArmorMultiplier = 1.50D;
+        private double leggingsArmorMultiplier = 1.25D;
+        private double bootsArmorMultiplier = 0.75D;
+
         private double itemBaseWeight = 1.0D;
 
         public boolean enabled() { return enabled; }
@@ -147,6 +154,12 @@ public final class ModConfig {
         public double ironArmorWeight() { return Math.max(0.0D, ironArmorWeight); }
         public double diamondArmorWeight() { return Math.max(0.0D, diamondArmorWeight); }
         public double netheriteArmorWeight() { return Math.max(0.0D, netheriteArmorWeight); }
+
+        public double helmetArmorMultiplier() { return Math.max(0.0D, helmetArmorMultiplier); }
+        public double chestplateArmorMultiplier() { return Math.max(0.0D, chestplateArmorMultiplier); }
+        public double leggingsArmorMultiplier() { return Math.max(0.0D, leggingsArmorMultiplier); }
+        public double bootsArmorMultiplier() { return Math.max(0.0D, bootsArmorMultiplier); }
+
         public double itemBaseWeight() { return Math.max(0.0D, itemBaseWeight); }
     }
 

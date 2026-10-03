@@ -18,38 +18,51 @@ public final class MagneticWeightResolver {
     private static final int DEBUG_LOG_COOLDOWN_TICKS = 20;
 
     public static double playerWeight(Player player) {
-        double weight = 0.0D;
-        double headWeight = armorPieceWeight(player.getItemBySlot(EquipmentSlot.HEAD));
-        double chestWeight = armorPieceWeight(player.getItemBySlot(EquipmentSlot.CHEST));
-        double legsWeight = armorPieceWeight(player.getItemBySlot(EquipmentSlot.LEGS));
-        double feetWeight = armorPieceWeight(player.getItemBySlot(EquipmentSlot.FEET));
-        weight = headWeight + chestWeight + legsWeight + feetWeight;
+        ModConfig.MagnetConfig config = ModConfig.get().magnet();
 
-        maybeLogPlayerArmor(player, headWeight, chestWeight, legsWeight, feetWeight, weight);
-        return weight;
+        double headWeight = armorPieceWeight(
+                player.getItemBySlot(EquipmentSlot.HEAD),
+                config.helmetArmorMultiplier()
+        );
+        double chestWeight = armorPieceWeight(
+                player.getItemBySlot(EquipmentSlot.CHEST),
+                config.chestplateArmorMultiplier()
+        );
+        double legsWeight = armorPieceWeight(
+                player.getItemBySlot(EquipmentSlot.LEGS),
+                config.leggingsArmorMultiplier()
+        );
+        double feetWeight = armorPieceWeight(
+                player.getItemBySlot(EquipmentSlot.FEET),
+                config.bootsArmorMultiplier()
+        );
+
+        double totalWeight = headWeight + chestWeight + legsWeight + feetWeight;
+        maybeLogPlayerArmor(player, headWeight, chestWeight, legsWeight, feetWeight, totalWeight);
+        return totalWeight;
     }
 
-    public static double armorPieceWeight(ItemStack stack) {
+    public static double armorPieceWeight(ItemStack stack, double slotMultiplier) {
         if (stack.isEmpty()) {
             return 0.0D;
         }
 
         ModConfig.MagnetConfig config = ModConfig.get().magnet();
 
+        double materialWeight;
         if (stack.is(MagnetTags.NETHERITE_ARMOR)) {
-            return config.netheriteArmorWeight();
-        }
-        if (stack.is(MagnetTags.DIAMOND_ARMOR)) {
-            return config.diamondArmorWeight();
-        }
-        if (stack.is(MagnetTags.IRON_ARMOR)) {
-            return config.ironArmorWeight();
-        }
-        if (stack.is(MagnetTags.CHAINMAIL_ARMOR)) {
-            return config.chainmailArmorWeight();
+            materialWeight = config.netheriteArmorWeight();
+        } else if (stack.is(MagnetTags.DIAMOND_ARMOR)) {
+            materialWeight = config.diamondArmorWeight();
+        } else if (stack.is(MagnetTags.IRON_ARMOR)) {
+            materialWeight = config.ironArmorWeight();
+        } else if (stack.is(MagnetTags.CHAINMAIL_ARMOR)) {
+            materialWeight = config.chainmailArmorWeight();
+        } else {
+            return 0.0D;
         }
 
-        return 0.0D;
+        return materialWeight * Math.max(0.0D, slotMultiplier);
     }
 
     public static double itemEntityWeight(ItemStack stack) {
