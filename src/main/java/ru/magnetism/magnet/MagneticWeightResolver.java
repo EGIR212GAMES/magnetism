@@ -53,7 +53,7 @@ public final class MagneticWeightResolver {
     }
 
     public static double itemEntityWeight(ItemStack stack) {
-        if (stack.isEmpty() || !stack.is(MagnetTags.MAGNETIC_ITEMS)) {
+        if (stack.isEmpty() || !isMagneticItem(stack)) {
             return 0.0D;
         }
 
@@ -63,6 +63,20 @@ public final class MagneticWeightResolver {
 
         maybeLogItemEntity(stack, weight);
         return weight;
+    }
+
+    /**
+     * Keep dedicated material/spear tags authoritative even if the aggregate
+     * magnetism:magnetic_items tag is not populated as expected after a data
+     * reload. This also keeps the magnetic classification fully data-driven.
+     */
+    private static boolean isMagneticItem(ItemStack stack) {
+        return stack.is(MagnetTags.MAGNETIC_ITEMS)
+                || stack.is(MagnetTags.MAGNETIC_IRON)
+                || stack.is(MagnetTags.MAGNETIC_DIAMOND)
+                || stack.is(MagnetTags.MAGNETIC_NETHERITE)
+                || stack.is(MagnetTags.MAGNETIC_ANCIENT_DEBRIS)
+                || stack.is(MagnetTags.MAGNETIC_SPEARS);
     }
 
     private static void maybeLogItemEntity(ItemStack stack, double weight) {
