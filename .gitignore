@@ -6,5 +6,4 @@ run/
 .vscode/
 *.iml
 .DS_Store
-config/
 gradle-9.7.1/
