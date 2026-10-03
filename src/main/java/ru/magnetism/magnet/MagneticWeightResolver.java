@@ -2,7 +2,9 @@ package ru.magnetism.magnet;
 
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import ru.magnetism.config.ModConfig;
 import ru.magnetism.util.ModLogger;
 
@@ -50,19 +52,43 @@ public final class MagneticWeightResolver {
         ModConfig.MagnetConfig config = ModConfig.get().magnet();
 
         double materialWeight;
-        if (stack.is(MagnetTags.NETHERITE_ARMOR)) {
+        if (isArmorFromTagOrVanilla(stack, MagnetTags.NETHERITE_ARMOR,
+                Items.NETHERITE_HELMET, Items.NETHERITE_CHESTPLATE,
+                Items.NETHERITE_LEGGINGS, Items.NETHERITE_BOOTS)) {
             materialWeight = config.netheriteArmorWeight();
-        } else if (stack.is(MagnetTags.DIAMOND_ARMOR)) {
+        } else if (isArmorFromTagOrVanilla(stack, MagnetTags.DIAMOND_ARMOR,
+                Items.DIAMOND_HELMET, Items.DIAMOND_CHESTPLATE,
+                Items.DIAMOND_LEGGINGS, Items.DIAMOND_BOOTS)) {
             materialWeight = config.diamondArmorWeight();
-        } else if (stack.is(MagnetTags.IRON_ARMOR)) {
+        } else if (isArmorFromTagOrVanilla(stack, MagnetTags.IRON_ARMOR,
+                Items.IRON_HELMET, Items.IRON_CHESTPLATE,
+                Items.IRON_LEGGINGS, Items.IRON_BOOTS)) {
             materialWeight = config.ironArmorWeight();
-        } else if (stack.is(MagnetTags.CHAINMAIL_ARMOR)) {
+        } else if (isArmorFromTagOrVanilla(stack, MagnetTags.CHAINMAIL_ARMOR,
+                Items.CHAINMAIL_HELMET, Items.CHAINMAIL_CHESTPLATE,
+                Items.CHAINMAIL_LEGGINGS, Items.CHAINMAIL_BOOTS)) {
             materialWeight = config.chainmailArmorWeight();
         } else {
             return 0.0D;
         }
 
         return materialWeight * Math.max(0.0D, slotMultiplier);
+    }
+
+    private static boolean isArmorFromTagOrVanilla(ItemStack stack,
+                                                   net.minecraft.tags.TagKey<Item> tag,
+                                                   Item... vanillaItems) {
+        if (stack.is(tag)) {
+            return true;
+        }
+
+        for (Item item : vanillaItems) {
+            if (stack.is(item)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public static double itemEntityWeight(ItemStack stack) {
