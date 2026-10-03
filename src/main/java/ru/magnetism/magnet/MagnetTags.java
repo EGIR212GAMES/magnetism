@@ -14,6 +14,9 @@ public final class MagnetTags {
     public static final TagKey<Item> MAGNETIC_NETHERITE = itemTag("magnetic_netherite");
     public static final TagKey<Item> MAGNETIC_SPEARS = itemTag("magnetic_spears");
 
+    /** Tools allowed to break the Magnet (copper pickaxe and better). Data-driven, extendable by packs. */
+    public static final TagKey<Item> MAGNET_BREAKING_TOOLS = itemTag("magnet_breaking_tools");
+
     public static final TagKey<Item> CHAINMAIL_ARMOR = itemTag("magnetic_armor/chainmail");
     public static final TagKey<Item> IRON_ARMOR = itemTag("magnetic_armor/iron");
     public static final TagKey<Item> DIAMOND_ARMOR = itemTag("magnetic_armor/diamond");

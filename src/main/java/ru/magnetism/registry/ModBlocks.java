@@ -6,7 +6,10 @@ import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.references.BlockItemId;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.world.item.BlockItem;
+import eu.pb4.polymer.core.api.item.PolymerBlockItem;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
@@ -21,6 +24,9 @@ import ru.magnetism.util.ModLogger;
 public final class ModBlocks {
     public static final Block MAGNET = register(
             ModBlockItemIds.MAGNET,
+            Items.COBBLED_DEEPSLATE,
+            "block.magnetism.magnet",
+            "Магнит",
             MagnetBlock::new,
             BlockBehaviour.Properties.ofFullCopy(Blocks.DEEPSLATE)
                     .sound(SoundType.STONE)
@@ -28,6 +34,9 @@ public final class ModBlocks {
 
     public static final Block COPIER = register(
             ModBlockItemIds.COPIER,
+            Items.IRON_BLOCK,
+            "block.magnetism.copier",
+            "Копир",
             CopierBlock::new,
             BlockBehaviour.Properties.ofFullCopy(Blocks.ANVIL)
                     .sound(SoundType.ANVIL)
@@ -60,14 +69,23 @@ public final class ModBlocks {
     }
 
     private static Block register(BlockItemId id,
+                                  Item clientItem,
+                                  String nameKey,
+                                  String fallbackName,
                                   Function<BlockBehaviour.Properties, Block> blockFactory,
                                   BlockBehaviour.Properties properties) {
         Block block = register(id.block(), blockFactory, properties);
-        BlockItem blockItem = new BlockItem(
+        // PolymerBlockItem makes clients see `clientItem` instead of this unknown item.
+        // The explicit name has a fallback so a client without our lang files shows
+        // "Магнит"/"Копир" instead of the raw translation key.
+        PolymerBlockItem blockItem = new PolymerBlockItem(
                 block,
                 new Item.Properties()
                         .useBlockDescriptionPrefix()
-                        .setId(id.item())
+                        .component(DataComponents.ITEM_NAME, Component.translatableWithFallback(
+                                nameKey, fallbackName))
+                        .setId(id.item()),
+                clientItem
         );
         Registry.register(BuiltInRegistries.ITEM, id.item(), blockItem);
         return block;

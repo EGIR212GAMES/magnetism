@@ -3,6 +3,7 @@ package ru.magnetism.server;
 import net.fabricmc.api.DedicatedServerModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import ru.magnetism.config.ModConfig;
+import ru.magnetism.magnet.MagnetBreakHandler;
 import ru.magnetism.magnet.MagnetLightningHandler;
 import ru.magnetism.platform.GeyserDetector;
 import ru.magnetism.platform.ServerEnvironment;
@@ -31,6 +32,7 @@ public final class MagnetismServer implements DedicatedServerModInitializer {
         SmokeManager.initialize();
         SmokeManager.exposureService().initialize();
         MagnetLightningHandler.initialize();
+        MagnetBreakHandler.initialize();
 
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             if (GeyserDetector.isGeyserLoaded()) {

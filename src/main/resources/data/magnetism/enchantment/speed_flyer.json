@@ -1,7 +1,8 @@
 {
   "anvil_cost": 8,
   "description": {
-    "translate": "enchantment.magnetism.speed_flyer"
+    "translate": "enchantment.magnetism.speed_flyer",
+    "fallback": "Скоролёт"
   },
   "effects": {
     "minecraft:attributes": [

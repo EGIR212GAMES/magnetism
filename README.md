@@ -102,3 +102,24 @@ Implemented server-side smoke exposure using the Smoke Engine density field, per
 - Lost hearts are represented by one permanent `MAX_HEALTH` `ADD_VALUE` modifier with a stable identifier. The modifier is reconciled against other max-health modifiers and clamped so Magnetism never lowers its effective max health below 2 HP.
 - Second Wind is a data-driven enchantment definition; its timing is read by the server exposure service from the current helmet enchantment level.
 - Speed Flyer is a data-driven attribute enchantment. It uses a stable attribute-modifier identifier, the Happy Ghast body slot, and a 26.2 `lookup` value provider for the exact I-V multipliers.
+
+## Magnet physics fix (v0.1.1)
+
+- Magnet now ticks every tick (`magnet.updateIntervalTicks = 1`); the old 2-tick cadence made motion jerky.
+- Velocity is synced to clients every tick via `Entity.hurtMarked` for both players and item entities. Players are simulated client-side, so before this the pull never reached them; item entities are only tracked every ~1 s by vanilla, which caused the jerking.
+- Pull towards a magnet above cancels gravity (`magnet.gravityCompensation`), so entities are lifted.
+- `REPEL` polarity is now actually applied (the polarity was previously ignored in the force code).
+- Player pull scales with armour material weight and with the number of worn pieces (sum of per-slot weights).
+- Config version 2: the `magnet` section of an existing `config/magnetism.json` is reset to the new defaults once on first start.
+
+## Vanilla-client support and magnet breaking (v0.2.0)
+
+- The mod is **server-only** (`environment: server`, no client entrypoint). Players join with a vanilla client; Fabric API clients also work.
+- [Polymer](https://polymer.pb4.eu) (`eu.pb4:polymer-core:0.17.5+26.2`, bundled via jar-in-jar) makes the server describe custom things to clients as vanilla ones:
+  - Magnet: ATTRACT looks like cobbled deepslate, REPEL like blackstone.
+  - Copier: looks like an iron block; its GUI is the vanilla anvil screen.
+  - Their items show as the same vanilla items, with names "Магнит" / "Копир" (translation key + fallback).
+  - Enchantment names use `fallback`, so no resource pack/lang is needed.
+- Magnet breaking: only a pickaxe in tag `magnetism:magnet_breaking_tools` (copper, iron, diamond, netherite) can break it; creative always can. Wrong tool = mining progress stays 0 and a hint is shown; a server-side event cancels any break that still arrives. Add more tools by extending the tag in a datapack.
+- Magnet and Copier are added to `minecraft:mineable/pickaxe`.
+- If jar-in-jar of Polymer ever causes trouble, remove the two `include` lines in `build.gradle` and put `polymer-bundled-0.17.5+26.2.jar` into the server `mods` folder.

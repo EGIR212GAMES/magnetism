@@ -7,13 +7,23 @@ group = project.maven_group
 
 repositories {
     // Loom adds the Minecraft and Fabric repositories required by the toolchain.
-    // Keep this block empty until an actual third-party dependency is introduced.
+    maven {
+        name = 'Nucleoid'
+        url = 'https://maven.nucleoid.xyz'
+    }
 }
 
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     implementation "net.fabricmc:fabric-loader:${project.loader_version}"
     implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+    // Polymer is bundled (jar-in-jar) so the server needs no extra mod file.
+    // It lets vanilla clients (no mods at all) join and see Magnet/Copier as vanilla blocks.
+    implementation "eu.pb4:polymer-core:${project.polymer_version}"
+    include "eu.pb4:polymer-core:${project.polymer_version}"
+    implementation "eu.pb4:polymer-common:${project.polymer_version}"
+    include "eu.pb4:polymer-common:${project.polymer_version}"
 }
 
 processResources {
@@ -48,10 +58,10 @@ tasks.register('verifyServerOnlyStructure') {
 
         def json = groovy.json.JsonSlurper.newInstance().parse(modJson)
         assert json.id == 'magnetism': "Unexpected mod id: ${json.id}"
-        assert json.environment == '*': 'Magnetism must be universal for registry sync'
+        assert json.environment == 'server': 'Magnetism is server-only; vanilla clients are supported through Polymer'
         assert json.entrypoints?.main: 'Main entrypoint is missing'
         assert json.entrypoints?.server: 'Dedicated server entrypoint is missing'
-        assert json.entrypoints?.client: 'Client entrypoint is required for registry sync'
+        assert !json.entrypoints?.client: 'Magnetism must not have a client entrypoint'
     }
 }
 

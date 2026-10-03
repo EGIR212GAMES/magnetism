@@ -3,18 +3,15 @@
   "id": "magnetism",
   "version": "${version}",
   "name": "Magnetism",
-  "description": "Content mod for Minecraft Java Edition 26.2 with Geyser-compatible presentation layers.",
+  "description": "Server-side content mod for Minecraft Java Edition 26.2. Works with vanilla clients (via Polymer) and Geyser/Bedrock.",
   "authors": [
     "Magnetism Team"
   ],
   "license": "All-Rights-Reserved",
-  "environment": "*",
+  "environment": "server",
   "entrypoints": {
     "main": [
       "ru.magnetism.Magnetism"
-    ],
-    "client": [
-      "ru.magnetism.client.MagnetismClient"
     ],
     "server": [
       "ru.magnetism.server.MagnetismServer"

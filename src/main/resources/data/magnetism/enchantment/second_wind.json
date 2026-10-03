@@ -1,7 +1,8 @@
 {
   "anvil_cost": 4,
   "description": {
-    "translate": "enchantment.magnetism.second_wind"
+    "translate": "enchantment.magnetism.second_wind",
+    "fallback": "Отдышка"
   },
   "max_cost": {
     "base": 30,

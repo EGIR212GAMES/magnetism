@@ -1,5 +1,7 @@
 package ru.magnetism.copier;
 
+import eu.pb4.polymer.core.api.block.PolymerBlock;
+import net.fabricmc.fabric.api.networking.v1.context.PacketContext;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionResult;
@@ -9,13 +11,23 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerLevelAccess;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import org.jetbrains.annotations.Nullable;
 
-public final class CopierBlock extends Block {
+/**
+ * The Copier. Clients see an iron block (full cube, like the real shape), and the
+ * GUI is the vanilla anvil screen, so no client mod is needed.
+ */
+public final class CopierBlock extends Block implements PolymerBlock {
     public CopierBlock(Properties properties) {
         super(properties);
+    }
+
+    @Override
+    public BlockState getPolymerBlockState(BlockState state, @org.jspecify.annotations.Nullable PacketContext context) {
+        return Blocks.IRON_BLOCK.defaultBlockState();
     }
 
     @Override
@@ -45,7 +57,7 @@ public final class CopierBlock extends Block {
         return new MenuProvider() {
             @Override
             public Component getDisplayName() {
-                return Component.translatable("block.magnetism.copier");
+                return Component.translatableWithFallback("block.magnetism.copier", "Копир");
             }
 
             @Override

@@ -18,6 +18,13 @@ public final class ModConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final String FILE_NAME = "magnetism.json";
 
+    /**
+     * Bumped when default values change in a way that old saved values would break.
+     * Absent in old files, so it deserializes as 0 (field has no initializer on purpose).
+     */
+    private static final int CURRENT_CONFIG_VERSION = 2;
+
+    private int configVersion;
     private boolean enabled = true;
     private boolean debugLogging = false;
     private MagnetConfig magnet = new MagnetConfig();
@@ -31,7 +38,9 @@ public final class ModConfig {
     }
 
     public static ModConfig defaults() {
-        return new ModConfig();
+        ModConfig config = new ModConfig();
+        config.configVersion = CURRENT_CONFIG_VERSION;
+        return config;
     }
 
     public static void load() {
@@ -49,6 +58,14 @@ public final class ModConfig {
                 current = loaded == null ? defaults() : loaded;
             }
             current.normalize();
+            if (current.configVersion < CURRENT_CONFIG_VERSION) {
+                // v2: the magnet physics was rewritten. Old saved values (2-tick interval,
+                // weak force) would keep the old broken behaviour, so reset only that section.
+                current.magnet = new MagnetConfig();
+                current.configVersion = CURRENT_CONFIG_VERSION;
+                save();
+                ModLogger.info("Magnet config section reset to new defaults (config version {}).", CURRENT_CONFIG_VERSION);
+            }
             ModLogger.info("Loaded config from {}", file);
         } catch (IOException | JsonIOException | JsonSyntaxException exception) {
             current = defaults();
@@ -120,13 +137,16 @@ public final class ModConfig {
         private boolean enabled = true;
         private boolean debugLogging = false;
         private double radius = 12.0D;
-        private double baseStrength = 0.02D;
-        private int updateIntervalTicks = 2;
+        private double baseStrength = 0.012D;
+        private int updateIntervalTicks = 1;
         private double minimumDistance = 0.15D;
-        private double falloffExponent = 2.0D;
-        private double verticalForceMultiplier = 1.0D;
-        private double maxAccelerationPerUpdate = 0.18D;
-        private double maxResultingVelocity = 1.50D;
+        private double falloffExponent = 1.0D;
+        private double verticalForceMultiplier = 2.5D;
+        private double gravityCompensation = 1.0D;
+        private double velocityDamping = 0.97D;
+        private double maxAccelerationPerUpdate = 0.14D;
+        private double maxResultingVelocity = 1.2D;
+        private double maxPlayerVelocity = 0.8D;
         private double chainmailArmorWeight = 1.0D;
         private double ironArmorWeight = 2.0D;
         private double diamondArmorWeight = 3.0D;
@@ -138,7 +158,7 @@ public final class ModConfig {
         private double leggingsArmorMultiplier = 1.25D;
         private double bootsArmorMultiplier = 0.75D;
 
-        private double itemBaseWeight = 1.0D;
+        private double itemBaseWeight = 8.0D;
 
         public boolean enabled() { return enabled; }
         public boolean debugLogging() { return debugLogging; }
@@ -148,8 +168,11 @@ public final class ModConfig {
         public double minimumDistance() { return Math.max(0.01D, minimumDistance); }
         public double falloffExponent() { return Math.max(0.1D, falloffExponent); }
         public double verticalForceMultiplier() { return Math.max(0.0D, verticalForceMultiplier); }
+        public double velocityDamping() { return Math.max(0.0D, Math.min(1.0D, velocityDamping)); }
         public double maxAccelerationPerUpdate() { return Math.max(0.0D, maxAccelerationPerUpdate); }
         public double maxResultingVelocity() { return Math.max(0.05D, maxResultingVelocity); }
+        public double maxPlayerVelocity() { return Math.max(0.05D, maxPlayerVelocity); }
+        public double gravityCompensation() { return Math.max(0.0D, Math.min(2.0D, gravityCompensation)); }
         public double chainmailArmorWeight() { return Math.max(0.0D, chainmailArmorWeight); }
         public double ironArmorWeight() { return Math.max(0.0D, ironArmorWeight); }
         public double diamondArmorWeight() { return Math.max(0.0D, diamondArmorWeight); }
