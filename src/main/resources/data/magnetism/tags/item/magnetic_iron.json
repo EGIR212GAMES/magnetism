@@ -1,0 +1,21 @@
+{
+  "replace": false,
+  "values": [
+    "minecraft:iron_nugget",
+    "minecraft:iron_ingot",
+    "minecraft:raw_iron",
+    "minecraft:raw_iron_block",
+    "minecraft:iron_block",
+    "minecraft:chain",
+    "#magnetism:magnetic_armor/iron",
+    "minecraft:iron_horse_armor",
+    "minecraft:tnt_minecart",
+    "minecraft:trident",
+    "minecraft:iron_sword",
+    "minecraft:iron_pickaxe",
+    "minecraft:iron_axe",
+    "minecraft:iron_shovel",
+    "minecraft:iron_hoe",
+    "#magnetism:magnetic_spears"
+  ]
+}

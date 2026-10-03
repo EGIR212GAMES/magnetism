@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "polarity=attract": {
+      "model": "magnetism:block/magnet_attract"
+    },
+    "polarity=repel": {
+      "model": "magnetism:block/magnet_repel"
+    }
+  }
+}

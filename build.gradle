@@ -1,0 +1,190 @@
+plugins {
+    id 'net.fabricmc.fabric-loom' version "${loom_version}"
+}
+
+version = project.version
+group = project.maven_group
+
+repositories {
+    // Loom adds the Minecraft and Fabric repositories required by the toolchain.
+    // Keep this block empty until an actual third-party dependency is introduced.
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+}
+
+processResources {
+    def version = project.version
+    inputs.property 'version', version
+
+    filesMatching('fabric.mod.json') {
+        expand version: version
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.release = 25
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+    withSourcesJar()
+}
+
+
+// This is deliberately a lightweight structural check rather than a second
+// testing framework. Gameplay tests arrive with the first actual mechanic.
+tasks.register('verifyServerOnlyStructure') {
+    group = 'verification'
+    description = 'Validates the Magnetism bootstrap structure.'
+
+    doLast {
+        def modJson = project.file('src/main/resources/fabric.mod.json')
+        assert modJson.exists(): 'src/main/resources/fabric.mod.json is missing'
+
+        def json = groovy.json.JsonSlurper.newInstance().parse(modJson)
+        assert json.id == 'magnetism': "Unexpected mod id: ${json.id}"
+        assert json.environment == '*': 'Magnetism must be universal for registry sync'
+        assert json.entrypoints?.main: 'Main entrypoint is missing'
+        assert json.entrypoints?.server: 'Dedicated server entrypoint is missing'
+        assert json.entrypoints?.client: 'Client entrypoint is required for registry sync'
+    }
+}
+
+
+
+tasks.register('verifyStage3Resources') {
+    group = 'verification'
+    description = 'Validates Stage 3 block models, blockstates, and magnetic item tags.'
+
+    doLast {
+        def required = [
+            'src/main/resources/assets/magnetism/blockstates/magnet.json',
+            'src/main/resources/assets/magnetism/blockstates/copier.json',
+            'src/main/resources/assets/magnetism/models/block/magnet_attract.json',
+            'src/main/resources/assets/magnetism/models/block/magnet_repel.json',
+            'src/main/resources/assets/magnetism/models/block/copier.json',
+            'src/main/resources/assets/magnetism/items/magnet.json',
+            'src/main/resources/assets/magnetism/items/copier.json',
+            'src/main/resources/data/magnetism/tags/item/magnetic_items.json',
+            'src/main/resources/data/magnetism/tags/item/magnetic_iron.json',
+            'src/main/resources/data/magnetism/tags/item/magnetic_diamond.json',
+            'src/main/resources/data/magnetism/tags/item/magnetic_ancient_debris.json',
+            'src/main/resources/data/magnetism/tags/item/magnetic_netherite.json',
+            'src/main/resources/data/magnetism/tags/item/magnetic_armor/chainmail.json',
+            'src/main/resources/data/magnetism/tags/item/magnetic_armor/iron.json',
+            'src/main/resources/data/magnetism/tags/item/magnetic_armor/diamond.json',
+            'src/main/resources/data/magnetism/tags/item/magnetic_armor/netherite.json'
+        ]
+
+        required.each { path ->
+            def f = project.file(path)
+            assert f.exists(): "Missing Stage 3 resource: ${path}"
+            new groovy.json.JsonSlurper().parse(f)
+        }
+    }
+}
+
+
+tasks.named('check') {
+    dependsOn 'verifyServerOnlyStructure', 'verifyStage3Resources', 'verifySmokeEngineStructure'
+}
+
+tasks.register('verifySmokeEngineStructure') {
+    group = 'verification'
+    description = 'Validates the server-only Smoke Simulation Engine source and configuration surface.'
+
+    doLast {
+        def requiredSources = [
+            'src/main/java/ru/magnetism/smoke/SmokeManager.java',
+            'src/main/java/ru/magnetism/smoke/SmokeRegion.java',
+            'src/main/java/ru/magnetism/smoke/SmokeCell.java',
+            'src/main/java/ru/magnetism/smoke/SmokeSource.java',
+            'src/main/java/ru/magnetism/smoke/SmokeSimulation.java',
+            'src/main/java/ru/magnetism/smoke/AirConnectivityService.java',
+            'src/main/java/ru/magnetism/smoke/SmokeParticleService.java',
+            'src/main/java/ru/magnetism/smoke/SmokeExposureService.java'
+        ]
+
+        requiredSources.each { path ->
+            def f = project.file(path)
+            assert f.exists(): "Missing Smoke Engine source: ${path}"
+        }
+
+        def smokeFiles = project.fileTree('src/main/java').matching { include '**/smoke/**' }.files
+        assert !smokeFiles.any {
+            it.text.contains('net.minecraft.client')
+        }: 'Smoke Engine must remain server-only'
+
+        def configText = project.file('src/main/java/ru/magnetism/config/ModConfig.java').text
+        [
+            'minCampfires', 'cellSize', 'maxRegionSize', 'maxCells',
+            'updateInterval', 'maxAirSearch', 'maxActiveRegions',
+            'particleDensity', 'topologyRefreshInterval', 'sourceRefreshInterval'
+        ].each { name ->
+            assert configText.contains(name): "Smoke config option missing: ${name}"
+        }
+    }
+}
+
+
+
+
+tasks.register('verifyStage5Structure') {
+    group = 'verification'
+    description = 'Validates Stage 5 smoke exposure, persistent health state, and enchantment definitions.'
+
+    doLast {
+        def requiredSources = [
+            'src/main/java/ru/magnetism/registry/ModAttachments.java',
+            'src/main/java/ru/magnetism/enchantment/ModEnchantments.java',
+            'src/main/java/ru/magnetism/enchantment/SecondWindRules.java',
+            'src/main/java/ru/magnetism/player/SmokeSneeze.java',
+            'src/main/java/ru/magnetism/player/SmokeHealthManager.java',
+            'src/main/java/ru/magnetism/smoke/SmokeExposureService.java'
+        ]
+        requiredSources.each { path ->
+            def f = project.file(path)
+            assert f.exists(): "Missing Stage 5 source: ${path}"
+        }
+
+        def enchantments = [
+            'src/main/resources/data/magnetism/enchantment/second_wind.json',
+            'src/main/resources/data/magnetism/enchantment/speed_flyer.json'
+        ]
+        enchantments.each { path ->
+            def f = project.file(path)
+            assert f.exists(): "Missing enchantment definition: ${path}"
+            new groovy.json.JsonSlurper().parse(f)
+        }
+
+        def configText = project.file('src/main/java/ru/magnetism/config/ModConfig.java').text
+        [
+            'dangerousDensityThreshold', 'baseExposureTicks',
+            'cleanAirRecoveryTicks', 'secondWindLevel1Ticks',
+            'secondWindLevel2Ticks', 'secondWindLevel3Ticks', 'minMaxHealth'
+        ].each { name ->
+            assert configText.contains(name): "Smoke exposure config option missing: ${name}"
+        }
+
+        def allJava = project.fileTree('src/main/java').matching { include '**/*.java' }.files
+        allJava.each { source ->
+            // Allow client API in client entrypoint, but not in core logic
+            def path = source.path
+            def isClientEntrypoint = path.contains('client' + File.separator)
+            if (!isClientEntrypoint) {
+                assert !source.text.contains('net.minecraft.client'): "Client API leaked into server source: ${source}"
+            }
+            assert !source.text.contains('net.minecraftforge'): "Forge API leaked into source: ${source}"
+            assert !source.text.contains('net.neoforged'): "NeoForge API leaked into source: ${source}"
+        }
+    }
+}
+
+tasks.named('check') {
+    dependsOn 'verifyStage5Structure'
+}

@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "magnetism",
+  "version": "${version}",
+  "name": "Magnetism",
+  "description": "Content mod for Minecraft Java Edition 26.2 with Geyser-compatible presentation layers.",
+  "authors": [
+    "Magnetism Team"
+  ],
+  "license": "All-Rights-Reserved",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "ru.magnetism.Magnetism"
+    ],
+    "client": [
+      "ru.magnetism.client.MagnetismClient"
+    ],
+    "server": [
+      "ru.magnetism.server.MagnetismServer"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "~26.2",
+    "java": ">=25",
+    "fabric-api": ">=0.161.0"
+  }
+}

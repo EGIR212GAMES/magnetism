@@ -1,0 +1,20 @@
+{
+  "replace": false,
+  "values": [
+    "minecraft:diamond",
+    "minecraft:diamond_block",
+    "#magnetism:magnetic_armor/diamond",
+    "minecraft:diamond_sword",
+    "minecraft:diamond_pickaxe",
+    "minecraft:diamond_axe",
+    "minecraft:diamond_shovel",
+    "minecraft:diamond_hoe",
+    "minecraft:diamond_block",
+    "minecraft:diamond_sword",
+    "minecraft:diamond_pickaxe",
+    "minecraft:diamond_axe",
+    "minecraft:diamond_shovel",
+    "minecraft:diamond_hoe",
+    "#magnetism:magnetic_spears"
+  ]
+}

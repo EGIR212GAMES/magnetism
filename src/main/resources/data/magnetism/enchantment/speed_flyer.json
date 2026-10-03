@@ -1,0 +1,35 @@
+{
+  "anvil_cost": 8,
+  "description": {
+    "translate": "enchantment.magnetism.speed_flyer"
+  },
+  "effects": {
+    "minecraft:attributes": [
+      {
+        "amount": {
+          "type": "minecraft:linear",
+          "base": 0.25,
+          "per_level_above_first": 0.1875
+        },
+        "attribute": "minecraft:flying_speed",
+        "id": "magnetism:enchantment.speed_flyer",
+        "operation": "add_multiplied_base"
+      }
+    ]
+  },
+  "max_cost": {
+    "base": 60,
+    "per_level_above_first": 12
+  },
+  "max_level": 5,
+  "min_cost": {
+    "base": 20,
+    "per_level_above_first": 10
+  },
+  "primary_items": "#minecraft:harnesses",
+  "slots": [
+    "body"
+  ],
+  "supported_items": "#minecraft:harnesses",
+  "weight": 1
+}
