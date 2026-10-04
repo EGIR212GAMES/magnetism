@@ -1,13 +1,17 @@
 package ru.magnetism.magnet;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.block.BaseRailBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.RailShape;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import ru.magnetism.config.ModConfig;
 import ru.magnetism.server.ServerTickManager;
 
@@ -43,6 +47,8 @@ public final class MagnetSystem {
     private static final double ITEM_GRAVITY = 0.04D;
     /** Vanilla per-tick gravity of players. */
     private static final double LIVING_GRAVITY = 0.08D;
+    /** Vanilla per-tick gravity of minecarts. */
+    private static final double MINECART_GRAVITY = 0.04D;
     /** Vanilla vertical drag applied after gravity. */
     private static final double VERTICAL_DRAG = 0.98D;
     /** Default block friction 0.6 times the 0.91 air multiplier used by living entities. */
@@ -87,7 +93,7 @@ public final class MagnetSystem {
                 continue;
             }
             Vec3 acceleration = computeAcceleration(player, magnetCenter, polarity, weight, LIVING_GRAVITY, config);
-            if (acceleration != null) {
+            if (acceleration != null && canReach(level, pos, magnetCenter, player, config)) {
                 pushPlayer(player, acceleration, fieldStrength(player, magnetCenter, config), tick, config);
             }
         }
@@ -101,10 +107,117 @@ public final class MagnetSystem {
                 continue;
             }
             Vec3 acceleration = computeAcceleration(itemEntity, magnetCenter, polarity, weight, ITEM_GRAVITY, config);
-            if (acceleration != null) {
+            if (acceleration != null && canReach(level, pos, magnetCenter, itemEntity, config)) {
                 pushItem(itemEntity, acceleration, fieldStrength(itemEntity, magnetCenter, config), config);
             }
         }
+
+        // All minecart types (tag magnetism:magnetic_minecarts), found by entity type so no
+        // minecart class has to be referenced.
+        for (Entity cart : level.getEntities(
+                (Entity) null,
+                area,
+                entity -> entity.isAlive() && isMagneticMinecart(entity))) {
+            if (canReach(level, pos, magnetCenter, cart, config)) {
+                pushMinecart(level, cart, magnetCenter, polarity, config);
+            }
+        }
+    }
+
+    /** Tag lookup through the registry holder: EntityType has no direct is(TagKey) in 26.2. */
+    private static boolean isMagneticMinecart(Entity entity) {
+        return BuiltInRegistries.ENTITY_TYPE.wrapAsHolder(entity.getType()).is(MagnetTags.MAGNETIC_MINECARTS);
+    }
+
+    // ---------------------------------------------------------------- line of sight
+
+    /**
+     * The Magnet only works on what it can "see": if any block with a collision shape lies on the
+     * straight line between the magnet and the target, the magnet does nothing to it.
+     * Two rays are tried (body centre, then the top of the hitbox) so that a target is not
+     * rejected just because its centre is clipped by a block edge; a wall or floor still blocks both.
+     */
+    private static boolean canReach(ServerLevel level,
+                                    BlockPos magnetPos,
+                                    Vec3 magnetCenter,
+                                    Entity target,
+                                    ModConfig.MagnetConfig config) {
+        if (!config.requireLineOfSight()) {
+            return true;
+        }
+        AABB box = target.getBoundingBox();
+        Vec3 center = box.getCenter();
+        if (!isBlocked(level, magnetPos, magnetCenter, center)) {
+            return true;
+        }
+        Vec3 top = new Vec3(center.x, box.maxY - 0.05D, center.z);
+        return !isBlocked(level, magnetPos, magnetCenter, top);
+    }
+
+    /**
+     * Walks the grid cells crossed by the segment {@code from -> to} (voxel traversal) and tests
+     * each cell's collision shape against the segment. The magnet's own cell is ignored.
+     * Uses only getBlockState / getCollisionShape / VoxelShape.clip, so partial blocks
+     * (slabs, fences...) are handled exactly and non-solid blocks (rails, grass, open doors)
+     * never block.
+     */
+    private static boolean isBlocked(ServerLevel level, BlockPos magnetPos, Vec3 from, Vec3 to) {
+        double dx = to.x - from.x;
+        double dy = to.y - from.y;
+        double dz = to.z - from.z;
+
+        int x = (int) Math.floor(from.x);
+        int y = (int) Math.floor(from.y);
+        int z = (int) Math.floor(from.z);
+        int endX = (int) Math.floor(to.x);
+        int endY = (int) Math.floor(to.y);
+        int endZ = (int) Math.floor(to.z);
+
+        int stepX = Integer.signum((int) Math.signum(dx));
+        int stepY = Integer.signum((int) Math.signum(dy));
+        int stepZ = Integer.signum((int) Math.signum(dz));
+
+        double tDeltaX = dx == 0.0D ? Double.POSITIVE_INFINITY : Math.abs(1.0D / dx);
+        double tDeltaY = dy == 0.0D ? Double.POSITIVE_INFINITY : Math.abs(1.0D / dy);
+        double tDeltaZ = dz == 0.0D ? Double.POSITIVE_INFINITY : Math.abs(1.0D / dz);
+        double tMaxX = dx == 0.0D ? Double.POSITIVE_INFINITY
+                : (stepX > 0 ? (x + 1 - from.x) : (from.x - x)) * tDeltaX;
+        double tMaxY = dy == 0.0D ? Double.POSITIVE_INFINITY
+                : (stepY > 0 ? (y + 1 - from.y) : (from.y - y)) * tDeltaY;
+        double tMaxZ = dz == 0.0D ? Double.POSITIVE_INFINITY
+                : (stepZ > 0 ? (z + 1 - from.z) : (from.z - z)) * tDeltaZ;
+
+        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+        int maxSteps = Math.abs(endX - x) + Math.abs(endY - y) + Math.abs(endZ - z) + 1;
+
+        for (int i = 0; i < maxSteps; i++) {
+            cursor.set(x, y, z);
+            if (!(x == magnetPos.getX() && y == magnetPos.getY() && z == magnetPos.getZ())) {
+                BlockState state = level.getBlockState(cursor);
+                if (!state.isAir()) {
+                    VoxelShape shape = state.getCollisionShape(level, cursor);
+                    if (!shape.isEmpty() && shape.clip(from, to, cursor) != null) {
+                        return true;
+                    }
+                }
+            }
+
+            if (x == endX && y == endY && z == endZ) {
+                break;
+            }
+
+            if (tMaxX <= tMaxY && tMaxX <= tMaxZ) {
+                x += stepX;
+                tMaxX += tDeltaX;
+            } else if (tMaxY <= tMaxZ) {
+                y += stepY;
+                tMaxY += tDeltaY;
+            } else {
+                z += stepZ;
+                tMaxZ += tDeltaZ;
+            }
+        }
+        return false;
     }
 
     // ---------------------------------------------------------------- force model
@@ -189,6 +302,109 @@ public final class MagnetSystem {
         item.setDeltaMovement(velocity);
         // Send the velocity to clients every tick; see class comment.
         item.hurtMarked = true;
+    }
+
+    // ---------------------------------------------------------------- minecarts
+
+    /**
+     * On rails the cart may only be accelerated along the track: the pull is reduced to its
+     * component along the rail direction, with no vertical force, so it can never lift the cart
+     * off the rails. Once there is no rail under the cart (the track ended, the cart was
+     * derailed, or it was never on rails) it is a free body and flies towards the magnet.
+     */
+    private static void pushMinecart(ServerLevel level,
+                                     Entity cart,
+                                     Vec3 magnetCenter,
+                                     double polarity,
+                                     ModConfig.MagnetConfig config) {
+        RailShape shape = railShapeUnder(level, cart);
+
+        if (shape == null) {
+            Vec3 acceleration = computeAcceleration(
+                    cart, magnetCenter, polarity, config.minecartFreeWeight(), MINECART_GRAVITY, config);
+            if (acceleration == null) {
+                return;
+            }
+            double field = fieldStrength(cart, magnetCenter, config);
+            Vec3 velocity = cart.getDeltaMovement().scale(damping(field, config)).add(acceleration);
+            cart.setDeltaMovement(limit(velocity, config.maxResultingVelocity()));
+            cart.hurtMarked = true;
+            return;
+        }
+
+        // gravity = 0: no lift on rails.
+        Vec3 pull = computeAcceleration(cart, magnetCenter, polarity, config.minecartRailWeight(), 0.0D, config);
+        if (pull == null) {
+            return;
+        }
+
+        Vec3 along = alongRail(shape, pull);
+        if (along.lengthSqr() > 0.0D) {
+            // Vanilla re-projects the velocity onto the track every tick, so this speeds the
+            // cart up or slows it down along the rails and cannot push it sideways.
+            cart.setDeltaMovement(cart.getDeltaMovement().add(along));
+        }
+    }
+
+    /** Rail shape of the rail the cart is on, or null if the cart is not on a rail. */
+    private static RailShape railShapeUnder(ServerLevel level, Entity cart) {
+        BlockPos pos = cart.blockPosition();
+        BlockState state = level.getBlockState(pos);
+        if (!(state.getBlock() instanceof BaseRailBlock)) {
+            // Only look one block down when the cart is hugging the bottom of its block
+            // (sloped rails); otherwise a cart flying above some rail would count as "on rails".
+            if (cart.getY() - pos.getY() > 0.3D) {
+                return null;
+            }
+            state = level.getBlockState(pos.below());
+            if (!(state.getBlock() instanceof BaseRailBlock)) {
+                return null;
+            }
+        }
+        BaseRailBlock rail = (BaseRailBlock) state.getBlock();
+        return state.getValue(rail.getShapeProperty());
+    }
+
+    /**
+     * Projects the horizontal pull onto the track. Each rail shape has two exits; the pull acts
+     * towards whichever exit points closer to the pull direction, scaled by how aligned they are.
+     */
+    private static Vec3 alongRail(RailShape shape, Vec3 pull) {
+        Vec3 exitA;
+        Vec3 exitB;
+        switch (shape) {
+            case NORTH_SOUTH, ASCENDING_NORTH, ASCENDING_SOUTH -> {
+                exitA = new Vec3(0.0D, 0.0D, -1.0D);
+                exitB = new Vec3(0.0D, 0.0D, 1.0D);
+            }
+            case EAST_WEST, ASCENDING_EAST, ASCENDING_WEST -> {
+                exitA = new Vec3(-1.0D, 0.0D, 0.0D);
+                exitB = new Vec3(1.0D, 0.0D, 0.0D);
+            }
+            case SOUTH_EAST -> {
+                exitA = new Vec3(0.0D, 0.0D, 1.0D);
+                exitB = new Vec3(1.0D, 0.0D, 0.0D);
+            }
+            case SOUTH_WEST -> {
+                exitA = new Vec3(0.0D, 0.0D, 1.0D);
+                exitB = new Vec3(-1.0D, 0.0D, 0.0D);
+            }
+            case NORTH_WEST -> {
+                exitA = new Vec3(0.0D, 0.0D, -1.0D);
+                exitB = new Vec3(-1.0D, 0.0D, 0.0D);
+            }
+            default -> { // NORTH_EAST
+                exitA = new Vec3(0.0D, 0.0D, -1.0D);
+                exitB = new Vec3(1.0D, 0.0D, 0.0D);
+            }
+        }
+
+        double dotA = pull.x * exitA.x + pull.z * exitA.z;
+        double dotB = pull.x * exitB.x + pull.z * exitB.z;
+        if (dotA >= dotB) {
+            return dotA > 0.0D ? exitA.scale(dotA) : Vec3.ZERO;
+        }
+        return dotB > 0.0D ? exitB.scale(dotB) : Vec3.ZERO;
     }
 
     // ---------------------------------------------------------------- players

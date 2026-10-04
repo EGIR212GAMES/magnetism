@@ -3,6 +3,7 @@ package ru.magnetism.magnet;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.Item;
 import ru.magnetism.Magnetism;
 
@@ -16,6 +17,12 @@ public final class MagnetTags {
 
     /** Tools allowed to break the Magnet (copper pickaxe and better). Data-driven, extendable by packs. */
     public static final TagKey<Item> MAGNET_BREAKING_TOOLS = itemTag("magnet_breaking_tools");
+
+    /** Every minecart type the Magnet pulls (data-driven: add modded minecarts via a datapack). */
+    public static final TagKey<EntityType<?>> MAGNETIC_MINECARTS = TagKey.create(
+            Registries.ENTITY_TYPE,
+            Identifier.fromNamespaceAndPath(Magnetism.MOD_ID, "magnetic_minecarts")
+    );
 
     public static final TagKey<Item> CHAINMAIL_ARMOR = itemTag("magnetic_armor/chainmail");
     public static final TagKey<Item> IRON_ARMOR = itemTag("magnetic_armor/iron");

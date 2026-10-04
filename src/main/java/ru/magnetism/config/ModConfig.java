@@ -160,6 +160,14 @@ public final class ModConfig {
 
         private double itemBaseWeight = 8.0D;
 
+        // Minecarts: on rails they are only pulled ALONG the track (never off it);
+        // once off the rails they behave like free bodies, so use a stronger weight to make them fly.
+        // If true, the Magnet only affects things with an unobstructed straight line to it.
+        private boolean requireLineOfSight = true;
+
+        private double minecartRailWeight = 3.0D;
+        private double minecartFreeWeight = 12.0D;
+
         public boolean enabled() { return enabled; }
         public boolean debugLogging() { return debugLogging; }
         public double radius() { return Math.max(1.0D, radius); }
@@ -184,6 +192,9 @@ public final class ModConfig {
         public double bootsArmorMultiplier() { return Math.max(0.0D, bootsArmorMultiplier); }
 
         public double itemBaseWeight() { return Math.max(0.0D, itemBaseWeight); }
+        public boolean requireLineOfSight() { return requireLineOfSight; }
+        public double minecartRailWeight() { return Math.max(0.0D, minecartRailWeight); }
+        public double minecartFreeWeight() { return Math.max(0.0D, minecartFreeWeight); }
     }
 
 

@@ -118,8 +118,25 @@ Implemented server-side smoke exposure using the Smoke Engine density field, per
 - [Polymer](https://polymer.pb4.eu) (`eu.pb4:polymer-core:0.17.5+26.2`, bundled via jar-in-jar) makes the server describe custom things to clients as vanilla ones:
   - Magnet: ATTRACT looks like cobbled deepslate, REPEL like blackstone.
   - Copier: looks like an iron block; its GUI is the vanilla anvil screen.
-  - Their items show as the same vanilla items, with names "Магнит" / "Копир" (translation key + fallback).
+  - Their items show as the same vanilla items, with names "Магнит" / "Копир" (literal text set at send time).
   - Enchantment names use `fallback`, so no resource pack/lang is needed.
 - Magnet breaking: only a pickaxe in tag `magnetism:magnet_breaking_tools` (copper, iron, diamond, netherite) can break it; creative always can. Wrong tool = mining progress stays 0 and a hint is shown; a server-side event cancels any break that still arrives. Add more tools by extending the tag in a datapack.
 - Magnet and Copier are added to `minecraft:mineable/pickaxe`.
 - If jar-in-jar of Polymer ever causes trouble, remove the two `include` lines in `build.gradle` and put `polymer-bundled-0.17.5+26.2.jar` into the server `mods` folder.
+
+## Item names on vanilla clients (v0.2.1)
+
+Names of the Magnet and Copier items are written into the client-side stack when it is sent (`ru.magnetism.item.ModBlockItem`): as literal text in both `ITEM_NAME` and a non-italic `CUSTOM_NAME`. The default item-name component is replaced by vanilla with a raw translation key, which a vanilla client cannot resolve, so it must not be relied on. Names are Russian; to change them edit the strings in `ModBlocks`.
+
+## Minecarts (v0.3.0)
+
+- The Magnet pulls/pushes every minecart type (tag `magnetism:magnetic_minecarts`: minecart, chest, furnace, hopper, TNT, spawner, command block; extendable by datapacks).
+- **On rails** the force is projected onto the track direction, with no vertical component, so a cart is only accelerated along the rails and cannot be pulled off them.
+- **Off rails** (the track ended, the cart was derailed, or it was never on rails) the cart is a free body: it is lifted (gravity compensation) and flies to the Magnet. A cart that rolls off the end of a track therefore continues towards the Magnet.
+- Config (`magnet` section): `minecartRailWeight` (default 3.0), `minecartFreeWeight` (default 12.0).
+
+## Line of sight (v0.4.0)
+
+- The Magnet only affects players, items and minecarts it can "see". If any block with a collision shape lies on the straight line between the magnet's centre and the target, the magnet does nothing to that target.
+- Two rays are tested (hitbox centre, then hitbox top); a wall or floor blocks both. Non-solid blocks (rails, grass, open doors, water) never block; partial blocks (slabs, fences) are tested against their real shape. The magnet's own block is ignored.
+- Config: `magnet.requireLineOfSight` (default `true`; set `false` for the old through-walls behaviour).

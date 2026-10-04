@@ -6,9 +6,7 @@ import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.references.BlockItemId;
 import net.minecraft.resources.ResourceKey;
-import eu.pb4.polymer.core.api.item.PolymerBlockItem;
-import net.minecraft.core.component.DataComponents;
-import net.minecraft.network.chat.Component;
+import ru.magnetism.item.ModBlockItem;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
@@ -75,17 +73,15 @@ public final class ModBlocks {
                                   Function<BlockBehaviour.Properties, Block> blockFactory,
                                   BlockBehaviour.Properties properties) {
         Block block = register(id.block(), blockFactory, properties);
-        // PolymerBlockItem makes clients see `clientItem` instead of this unknown item.
-        // The explicit name has a fallback so a client without our lang files shows
-        // "Магнит"/"Копир" instead of the raw translation key.
-        PolymerBlockItem blockItem = new PolymerBlockItem(
+        // ModBlockItem makes clients see `clientItem` and gives it a readable name.
+        ModBlockItem blockItem = new ModBlockItem(
                 block,
                 new Item.Properties()
                         .useBlockDescriptionPrefix()
-                        .component(DataComponents.ITEM_NAME, Component.translatableWithFallback(
-                                nameKey, fallbackName))
                         .setId(id.item()),
-                clientItem
+                clientItem,
+                nameKey,
+                fallbackName
         );
         Registry.register(BuiltInRegistries.ITEM, id.item(), blockItem);
         return block;
